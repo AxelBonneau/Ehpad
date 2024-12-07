@@ -1,5 +1,12 @@
 import streamlit as st
+import subprocess
+import sys
 
+# Installer pymongo si nécessaire
+try:
+    import pymongo
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pymongo"])
 
 # Configuration de la page
 st.set_page_config(
