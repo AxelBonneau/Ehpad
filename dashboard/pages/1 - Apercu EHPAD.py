@@ -10,7 +10,7 @@ from folium.plugins import MarkerCluster
 
 st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈")
 
-client = MongoClient("mongodb+srv://axelbonneau:n2GyfDMtGb02M7n4@ehpad.rqwk5.mongodb.net/")
+client = MongoClient("mongodb+srv://axelbonneau:n2GyfDMtGb02M7n4@ehpad.rqwk5.mongodb.net/?retryWrites=true&w=majority", serverSelectionTimeoutMS=30000)
 db = client["Ehpad"]
 collection = db["base-emplacement"]
 
