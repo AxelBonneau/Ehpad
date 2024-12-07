@@ -6,11 +6,19 @@ import plotly.express as px
 import plotly.graph_objects as go
 import folium
 from folium.plugins import MarkerCluster
+import toml
 
+# Charger la configuration depuis le fichier toml
+config = toml.load("./dashboard/secrets.toml")
 
 st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈")
 
-client = MongoClient("mongodb+srv://axelbonneau:n2GyfDMtGb02M7n4@ehpad.rqwk5.mongodb.net/?retryWrites=true&w=majority", serverSelectionTimeoutMS=30000)
+# Récupérer les informations MongoDB
+mongodb_uri = config['mongodb']['uri']
+server_timeout = config['mongodb']['timeout']
+
+# Connexion à MongoDB avec les paramètres de configuration
+client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=server_timeout)
 db = client["Ehpad"]
 collection = db["base-emplacement"]
 
