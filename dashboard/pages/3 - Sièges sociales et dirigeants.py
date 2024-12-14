@@ -4,6 +4,14 @@ import os
 
 # Afficher le chemin d'exécution actuel
 st.write(f"Chemin d'exécution actuel : {os.getcwd()}")
+current_directory = os.getcwd()
+
+
+# Explorer tous les sous-dossiers et fichiers
+print("Chemins accessibles :\n")
+for root, dirs, files in os.walk(current_directory):
+    for name in files:
+        print(os.path.join(root, name))
 
 st.set_page_config(page_title="Sièges sociales et dirigeants", page_icon="📈")
 
