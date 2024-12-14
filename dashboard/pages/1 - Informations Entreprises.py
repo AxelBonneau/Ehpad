@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈")
+st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈", layout = "wide")
 
 # Charger les données JSON dans un DataFrame
-file_path = "./../Data/base-etablissement.json"
+file_path = "./data/base-etablissement.json"
 df = pd.read_json(file_path)
 
 # Normalisation de la structure JSON (si nécessaire)

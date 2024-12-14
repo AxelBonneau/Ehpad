@@ -9,17 +9,6 @@ st.set_page_config(
     layout="wide"  # Facultatif : change la mise en page par défaut
 )
 
-# Afficher le chemin d'exécution actuel
-st.write(f"Chemin d'exécution actuel : {os.getcwd()}")
-current_directory = os.getcwd()
-
-
-# Explorer tous les sous-dossiers et fichiers
-print("Chemins accessibles :\n")
-for root, dirs, files in os.walk(current_directory):
-    for name in files:
-        print(os.path.join(root, name))
-
 # Charger les données JSON dans un DataFrame
 file_path = "./data/EHPAD.json"
 df = pd.read_json(file_path)
