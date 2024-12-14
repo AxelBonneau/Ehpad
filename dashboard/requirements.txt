@@ -2,4 +2,5 @@ pymongo
 streamlit
 plotly
 folium
-toml
+pydeck
+scikit-learn

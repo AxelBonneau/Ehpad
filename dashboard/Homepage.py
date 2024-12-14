@@ -37,3 +37,5 @@ st.markdown(
     y compris leur capacité, leur localisation et les tarifs appliqués.
     """
 )   
+
+st.image("./images/logo-leon.png")
