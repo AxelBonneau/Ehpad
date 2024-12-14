@@ -8,7 +8,7 @@ st.set_page_config(page_title="Aperçu des établissements français", page_icon
 
 
 # Charger les données JSON dans un DataFrame
-file_path = "./Data/base-etablissement.json"
+file_path = "./../Data/base-etablissement.json"
 df = pd.read_json(file_path)
 
 # Normalisation de la structure JSON (si nécessaire)
