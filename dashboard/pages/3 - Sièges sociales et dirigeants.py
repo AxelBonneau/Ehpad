@@ -1,5 +1,9 @@
 import streamlit as st
 import pandas as pd
+import os
+
+# Afficher le chemin d'exécution actuel
+st.write(f"Chemin d'exécution actuel : {os.getcwd()}")
 
 st.set_page_config(page_title="Sièges sociales et dirigeants", page_icon="📈")
 
