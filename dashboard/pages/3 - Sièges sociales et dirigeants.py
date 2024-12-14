@@ -8,7 +8,7 @@ st.write(f"Chemin d'exécution actuel : {os.getcwd()}")
 st.set_page_config(page_title="Sièges sociales et dirigeants", page_icon="📈")
 
 # Charger les données JSON dans un DataFrame
-file_path = "./../Data/EHPAD.json"
+file_path = "./data/EHPAD.json"
 df = pd.read_json(file_path)
 
 # Normalisation de la structure JSON (si nécessaire)
