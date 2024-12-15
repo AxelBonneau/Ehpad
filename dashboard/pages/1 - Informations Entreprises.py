@@ -131,36 +131,105 @@ grouped_df = (filtered_df
 
 nbr_etablissement = grouped_df.shape[0]
 
-st.header("Informations sur les Etablissement de vieillesse")
+st.header("Informations sur les Etablissements de vieillesse")
 st.write(f"Nombre d'Etablissement trouvé : {nbr_etablissement}")
 
-st.subheader("Tableau de données")
-st.dataframe(grouped_df)
-
-# Ajout d'un lien vers une icône (icône publique Mapbox, par exemple)
-ICON_URL = "https://upload.wikimedia.org/wikipedia/commons/6/6b/Map_marker_icon_%E2%80%93_Nicolas_Mollet_%E2%80%93_Map_pointer_%E2%80%93_Desktop.png"
-grouped_df["icon_data"] = grouped_df.apply(
-    lambda row: {
-        "url": ICON_URL,
-        "width": 128,
-        "height": 128,
-        "anchorY": 128,  # Position de l'icône (128 correspond au bas de l'image)
-    },
-    axis=1
-)
-
+st.subheader("Carte des établissements d'EHPAD")
 # Créer une carte Plotly
 fig = px.scatter_mapbox(
     grouped_df,
     lat="latitude",
     lon="longitude",
-    text="ville",  # Afficher le nom de la ville au survol
+    text="Société",  # Afficher le nom de la ville au survol
     zoom=5,
     height=500
 )
 
-# Définir le style Mapbox (utilise une clé API si nécessaire)
 fig.update_layout(mapbox_style="carto-positron")
 
-# Afficher la carte
-st.plotly_chart(fig)
+event = st.plotly_chart(fig, on_select="rerun", selection_mode=["points"])
+
+selected_points = event["selection"]["points"]
+
+points_df = pd.DataFrame(selected_points)
+
+if not points_df.empty:
+    informations_point = pd.merge(points_df, 
+                                  df, 
+                                  left_on=["text", "lon", "lat"],
+                                  right_on=["title", "coordinates.longitude", "coordinates.latitude"])
+    
+    informations_point = informations_point[[
+        # 1. Informations générales sur l'établissement
+        "_id", "title", "noFinesset", "capacity", "legal_status", 
+        "isViaTrajectoire", "updatedAt",
+        
+        # 2. Types d'établissements (booléens)
+        "types.IsEHPAD", "types.IsEHPA", "types.IsESLD", "types.IsRA", "types.IsAJA", "types.IsHCOMPL", 
+        "types.IsHTEMPO", "types.IsACC_JOUR", "types.IsACC_NUIT", "types.IsHAB_AIDE_SOC", 
+        "types.IsCONV_APL", "types.IsALZH", "types.IsUHR", "types.IsPASA", "types.IsPUV", "types.IsF1", 
+        "types.IsF1Bis", "types.IsF2",
+        
+        # 3. Tarification générale
+        "pricing.cerfa", "pricing.prixMin",
+        
+        # 4. Coordonnées et localisation
+        "coordinates.street", 
+        "coordinates.postcode", "coordinates.deptcode", "coordinates.deptname", 
+        "coordinates.city", "coordinates.phone", "coordinates.emailContact", 
+        "coordinates.gestionnaire", "coordinates.website", 
+        "coordinates.latitude", "coordinates.longitude", "coordinates.region"
+    ]]
+
+    # Mise en forme avec colonnes
+    col1, col2 = st.columns(2)
+
+    # Partie 1: Informations générales
+    with col1:
+        st.subheader("Informations générales")
+        st.write(f"**Nom Etablissement**: {informations_point['title'][0]}")
+        st.write(f"**Numéro FINESS**: {informations_point['noFinesset'][0]}")
+        st.write(f"**Capacité**: {informations_point['capacity'][0]}")
+        st.write(f"**Statut juridique**: {informations_point['legal_status'][0]}")
+        st.write(f"**Via Trajectoire**: {'✔️' if informations_point['isViaTrajectoire'][0] else '❌'}")
+        st.write(f"**Dernière mise à jour**: {informations_point['updatedAt'][0]}")
+
+    # Partie 2: Types d'établissements
+    with col2:
+        st.subheader("Types d'établissements")
+        col2bis1, col2bis2 = st.columns(2)
+
+        with col2bis1:
+           
+            types_bool_cols = [
+                "types.IsEHPAD", "types.IsEHPA", "types.IsESLD", "types.IsRA", "types.IsAJA", "types.IsHCOMPL", 
+                "types.IsHTEMPO", "types.IsACC_JOUR", "types.IsACC_NUIT"   
+            ]
+            for col in types_bool_cols:
+                st.checkbox(label=col, value=informations_point[col][0], disabled=True)
+        
+        with col2bis2:
+            types_bool_cols2 = [ "types.IsHAB_AIDE_SOC", 
+                "types.IsCONV_APL", "types.IsALZH", "types.IsUHR", "types.IsPASA", "types.IsPUV", "types.IsF1", 
+                "types.IsF1Bis", "types.IsF2"
+            ]
+            for col in types_bool_cols2:
+                st.checkbox(label=col, value=informations_point[col][0], disabled=True)
+
+
+    # Partie 3: Coordonnées et localisation
+    
+    st.subheader("Coordonnées")
+    col3, col4 = st.columns(2)
+    with col3:
+        st.write(f"**Rue**: {informations_point['coordinates.street'][0]}")
+        st.write(f"**Ville**: {informations_point['coordinates.city'][0]}")
+        st.write(f"**Code postal**: {informations_point['coordinates.postcode'][0]}")
+        st.write(f"**Département**: {informations_point['coordinates.deptname'][0]}")
+        st.write(f"**Région**: {informations_point['coordinates.region'][0]}")
+
+    with col4:
+        st.write(f"**Téléphone**: {informations_point['coordinates.phone'][0]}")
+        st.write(f"**Email**: {informations_point['coordinates.emailContact'][0]}")
+        st.write(f"**Gestionnaire**: {informations_point['coordinates.gestionnaire'][0]}")
+        st.write(f"**Site Web**: {informations_point['coordinates.website'][0]}")
