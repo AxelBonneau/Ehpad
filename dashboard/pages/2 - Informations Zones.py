@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
+import random
+import numpy as np
+import math
 from sklearn.cluster import KMeans
 
 st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈", layout="wide")
@@ -18,65 +21,125 @@ required_columns = ["coordinates.deptname", "coordinates.deptcode", "capacity", 
 if not all(col in df.columns for col in required_columns):
     raise ValueError("Le fichier JSON ne contient pas toutes les colonnes nécessaires : " + ", ".join(required_columns))
 
-# Sélection des filtres dans Streamlit
+df["Nom_Entreprise"] = df["title"] + " - " + df["noFinesset"]
+
+regions = df["coordinates.region"].dropna().unique().tolist()
 departements = df["coordinates.deptname"].dropna().unique().tolist()
-capacite_min = st.sidebar.number_input("Capacité minimale d'accueil", min_value=0, value=0)
-# Sélection multiple avec tous les départements sélectionnés par défaut
-# CSS pour personnaliser l'apparence du widget
-st.markdown("""
-    <style>
-    .stMultiSelect div[data-baseweb="select"] {
-        background-color: #f0f4f8;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        padding: 8px;
-    }
-    .stMultiSelect div[data-baseweb="select"] > div {
-        max-height: 200px;  /* Limite la hauteur de la liste */
-        overflow-y: auto;   /* Ajoute une barre de défilement verticale */
-    }
-    .stMultiSelect div[data-baseweb="select"] .dropdown-toggle {
-        color: #4CAF50;  /* Change la couleur du texte du bouton */
-    }
-    </style>
-""", unsafe_allow_html=True)
+capacite = max(df["capacity"].dropna().unique().tolist())
 
-# Multiselect avec gestion de la taille et aspect esthétique
-selected_departements = st.sidebar.multiselect(
-    "Choisissez un ou plusieurs départements",  # Label
-    options=departements,  # Liste des options
-    key="selected_options", 
-    default=departements,  # Par défaut, tout est sélectionné
-    help="Sélectionnez un ou plusieurs départements pour afficher des informations.",
-)
+# Sélection des filtres dans Streamlit
+with st.sidebar.expander("Capacité d'accueil"):
+    capacite_min = st.number_input("Capacité minimale d'accueil", min_value=0, value=0)
+    capacite_max = st.number_input("Capacité maximale d'accueil", max_value=capacite, value=capacite)
+    
+# Liste des régions et des départements disponibles
+regions = df["coordinates.region"].unique().tolist()
+departements = df["coordinates.deptname"].unique().tolist()
+
+# Obtenir les listes uniques pour les filtres
+regions = df["coordinates.region"].unique().tolist()
+departements = df["coordinates.deptname"].unique().tolist()
+cities = df["coordinates.city"].unique().tolist()
+
+# Initialiser les sélections
+selected_region = None
+selected_departement = None
+selected_city = None
+
+with st.sidebar.expander("Localisation"):
+    # Sélection de la région
+    selected_region = st.selectbox(
+        "Choisissez une région", options=["(Toutes les régions)"] + regions
+    )
+    
+    # Dynamique : départements filtrés par région
+    if selected_region != "(Toutes les régions)":
+        filtered_deps = (
+            df[df["coordinates.region"] == selected_region]["coordinates.deptname"]
+            .unique()
+            .tolist()
+        )
+        selected_departement = st.selectbox(
+            "Choisissez un département", options=["(Tous les départements)"] + filtered_deps
+        )
+    else:
+        selected_departement = st.selectbox(
+            "Choisissez un département", options=["(Tous les départements)"] + departements
+        )
+
+    # Dynamique : villes filtrées par département
+    if selected_departement != "(Tous les départements)":
+        filtered_cities = (
+            df[df["coordinates.deptname"] == selected_departement]["coordinates.city"]
+            .unique()
+            .tolist()
+        )
+        selected_city = st.selectbox(
+            "Choisissez une ville", options=["(Toutes les villes)"] + filtered_cities
+        )
+    elif selected_region != "(Toutes les régions)":
+        # Si un département n'est pas choisi, filtrer par région pour la ville
+        filtered_cities = (
+            df[df["coordinates.region"] == selected_region]["coordinates.city"]
+            .unique()
+            .tolist()
+        )
+        selected_city = st.selectbox(
+            "Choisissez une ville", options=["(Toutes les villes)"] + filtered_cities
+        )
+    else:
+        selected_city = st.selectbox(
+            "Choisissez une ville", options=["(Toutes les villes)"] + cities
+        )
+
+# Application des filtres sur le DataFrame
+filtered_df = df.copy()
+if selected_region != "(Toutes les régions)":
+    filtered_df = filtered_df[filtered_df["coordinates.region"] == (selected_region)]
+if selected_departement != "(Tous les départements)":
+    filtered_df = filtered_df[filtered_df["coordinates.deptname"] == (selected_departement)]
+if selected_city != "(Toutes les villes)":
+    filtered_df = filtered_df[filtered_df["coordinates.city"] == selected_city]
+filtered_df = filtered_df[(df.capacity >= capacite_min) & (df.capacity <= capacite_max)]
+
+groupe = filtered_df["Nom_Entreprise"].dropna().to_list()
+
+options_residence = ["EHPAD", "EHPA", "ESLD", "Résidence Autonomie", "Accueil de Jour"]
+with st.sidebar.expander("Autres critères"):    
+    n_clusters = st.number_input(
+        "Nombre de cluster : ", value=15, placeholder="Choisir un nombre..."
+    )
+    selection_residence = st.segmented_control("Type de Résidence : ", options_residence, selection_mode="multi", default=options_residence)
 
 
-n_clusters = st.sidebar.number_input("Cluster", min_value=5, max_value=30, value=10)
+if "EHPAD" not in selection_residence:
+    filtered_df = filtered_df[filtered_df["types.IsEHPAD"] == 0]
+if "EHPA" not in selection_residence:
+    filtered_df = filtered_df[filtered_df["types.IsEHPA"] == 0]
+if "ESLD" not in selection_residence:
+    filtered_df = filtered_df[filtered_df["types.IsESLD"] == 0]
+if "Résidence Autonomie" not in selection_residence:
+    filtered_df = filtered_df[filtered_df["types.IsRA"] == 0]
+if "Accueil de Jour" not in selection_residence:
+    filtered_df = filtered_df[filtered_df["types.IsAJA"] == 0] 
 
-# Filtrage des données selon les choix de l'utilisateur
-filtered_df = df[
-    (df["coordinates.deptname"].isin(selected_departements)) &  # Filtre les départements sélectionnés
-    (df["capacity"] >= capacite_min)  # Filtre sur la capacité minimale
-]
-
-# Groupement et agrégation
-grouped_df = (filtered_df
-    .groupby(["title", "noFinesset", "coordinates.latitude", "coordinates.longitude"], as_index=False)
-    .agg({"capacity": "sum"})  # Somme des capacités pour chaque groupe
+# Regrouper les données et calculer le nombre total de places par société
+result_df = (filtered_df
+    .groupby(["title", "noFinesset", "coordinates.region","coordinates.deptname", "coordinates.deptcode",
+              "coordinates.city", "coordinates.latitude", "coordinates.longitude"], as_index=False)
+    .agg({"capacity": "sum"})
     .rename(columns={
-        "title": "Société",
-        "noFinesset": "noFinesset",
-        "coordinates.latitude": "latitude",
-        "coordinates.longitude": "longitude",
-        "capacity": "Nombre_de_Place"
+        "title": "Société", 
+        "noFinesset": "noFinesset", 
+        "coordinates.region": "region",
+        "coordinates.deptname": "nom_departement", 
+        "coordinates.deptcode": "no_departement", 
+        "coordinates.city":"ville",
+        "coordinates.latitude": "latitude", 
+        "coordinates.longitude":"longitude",
+        "capacity": "Nombre de Place"
     })
 )
-
-# Tri des résultats par le nombre de places en ordre décroissant
-result_df = grouped_df.sort_values(by="Nombre_de_Place", ascending=False)
-
-# Affichage dans Streamlit (ou utilisation ultérieure)
-st.write(result_df)
 
 def classify_region(lat, lon):
     if lon > -5 and lon < 10 and lat > 41 and lat < 51:  # France métropolitaine
@@ -101,6 +164,7 @@ for region in result_df["region_geographique"].unique():
     n_clusters = min(n_clusters, len(coords))  # Par exemple, 5 clusters max ou moins si échantillons insuffisants
 
     if n_clusters > 1:  # Assurez-vous qu'il y a au moins 2 points pour KMeans
+        coords = np.radians(coords)
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
         region_df["cluster"] = kmeans.fit_predict(coords)
     else:
@@ -108,69 +172,68 @@ for region in result_df["region_geographique"].unique():
     
     dfs.append(region_df)
 
+# Fonction pour convertir hex en RGB
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')  # Enlever le '#' du début
+    return [int(hex_color[i:i+2], 16) for i in (0, 2, 4)]  # Convertir chaque paire de caractères en valeur RGB
+
 df_final = pd.concat(dfs)
 
-def generate_pastel_colors(n):
-    import random
-    colors = []
-    for _ in range(n):
-        # Générer des couleurs pastel distinctes
-        r = int(255 * random.uniform(0.7, 1.0))
-        g = int(255 * random.uniform(0.7, 1.0))
-        b = int(255 * random.uniform(0.7, 1.0))
-    
-        
-        # Ajouter la couleur RGBA à la liste
-        colors.append([r, g, b])
-    
-    return colors
-
 # Créez une palette pastel unique pour vos clusters
-unique_clusters = df_final["cluster"].nunique()
-pastel_colors = generate_pastel_colors(unique_clusters)
+unique_clusters = df_final["cluster"].unique()
+colors = {cluster: "#{:02x}{:02x}{:02x}".format(int(255 * random.uniform(0.4, 1)), 
+                                                int(255 * random.uniform(0.4, 1)), 
+                                               int(255 * random.uniform(0.4, 1))) 
+          for cluster in unique_clusters}
 
-# Ajouter les couleurs pastel au DataFrame
-df_final["color"] = df_final["cluster"].apply(lambda x: pastel_colors[x % len(pastel_colors)])
+# Assigner ces couleurs dans df_final
+df_final["color"] = df_final["cluster"].map(colors)
+df_final["rgb_color"] = df_final["color"].apply(hex_to_rgb)
 
+df["exits_radius"] = df_final["Nombre de Place"].apply(lambda exits_count: math.exp(exits_count))
 
-df_final["radius"] = df_final["Nombre_de_Place"] / df_final["Nombre_de_Place"].max() * 2000
-
-# Fonction pour afficher les informations du point sélectionné
-def display_selected_point(info):
-    if info:
-        st.write(f"Informations du point sélectionné : {info}")
-    else:
-        st.write("Aucun point sélectionné")
-
-# Fonction pour calculer le rayon en fonction du zoom
-def get_radius_scale(zoom_level):
-    # Plus le zoom est élevé, plus l'échelle du rayon est petite
-    return max(0.05, 10 / zoom_level)  # Ajuster la fonction pour obtenir l'effet souhaité
-
-
-# Affichage avec pydeck
+# Affichage de la carte avec pydeck
 st.pydeck_chart(
     pdk.Deck(
         map_style="mapbox://styles/mapbox/dark-v10",  # Style sombre
         initial_view_state=pdk.ViewState(
             latitude=df_final["latitude"].mean(),
             longitude=df_final["longitude"].mean(),
-            zoom=3,
+            zoom=5,  # Zoom sur la carte, vous pouvez ajuster la valeur par défaut
+            bearing=0,  # Rotation de la carte
+            pitch=0,  # Inclinaison
         ),
         layers=[
             pdk.Layer(
                 "ScatterplotLayer",
                 data=df_final,
-                get_position=["longitude", "latitude"],
-                get_color="color",  # Couleurs pastel
-                get_radius="radius",  # Appliquer un rayon basé sur le niveau de zoom
-                radius_scale=get_radius_scale(3), 
-                
-                pickable=True,  # Permet d'interagir avec les éléments
-                auto_highlight=True  # Met en surbrillance le point au survol
+                get_position=["longitude", "latitude"],  # Coordonnées
+                get_fill_color="rgb_color",  # Couleur basée sur le cluster
+                radius_scale=100,  # Encore plus grand
+                radius_min_pixels=4,  # Points bien visibles
+                radius_max_pixels=300,  # Points qui peuvent devenir très gros en zoomant
+                line_width_min_pixels=2,  # Bord plus épais pour bien les délimiter
+                get_radius="exits_radius",  # Taille basée sur le nombre de places
+                pickable=True,  # Interactions avec les points
+                opacity=0.8,
+                stroked=True,
+                filled=True
             )
-        ],
-        # Interaction sur clic
-        tooltip={"html": "{Nombre_de_Place}", "style": {"color": "white"}},  # Afficher l'info du point
+        ]
     )
 )
+
+# Ajouter une légende sous la carte
+st.markdown("### Légende des Clusters")
+
+# Afficher les clusters et leurs couleurs dynamiques
+for cluster in sorted(df_final["cluster"].unique()):
+    color = colors.get(cluster, "#000000")  # Couleur par défaut si non trouvée
+    cluster_name = f"Cluster {cluster}" if cluster != -1 else "Bruit (Non classé)"
+    st.markdown(
+        f"<div style='display:flex; align-items:center; margin-bottom:5px;'>"
+        f"<div style='width:20px; height:20px; background-color:{color}; margin-right:10px;'></div>"
+        f"<div>{cluster_name}</div>"
+        f"</div>",
+        unsafe_allow_html=True
+    )

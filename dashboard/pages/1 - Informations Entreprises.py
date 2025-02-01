@@ -1,45 +1,35 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-
-st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈", layout = "wide")
+import json
+st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈", layout="wide")
 
 # Charger les données JSON dans un DataFrame
-file_path = "./data/base-etablissement.json"
-df = pd.read_json(file_path)
+with open("./data/base-etablissement.json", "r") as file:
+    data = json.load(file)
+df = pd.json_normalize(data)
 
-# Normalisation de la structure JSON (si nécessaire)
-# Si vos données JSON ont des colonnes imbriquées, utilisez json_normalize pour les aplatir.
-df = pd.json_normalize(df.to_dict(orient='records'))
-
-# Vérifier que les colonnes nécessaires sont présentes
-required_columns = ["coordinates.deptname", "coordinates.deptcode", "capacity", "title", "noFinesset"]
-if not all(col in df.columns for col in required_columns):
-    raise ValueError("Le fichier JSON ne contient pas toutes les colonnes nécessaires : " + ", ".join(required_columns))
-
+# Liste des régions, départements et villes
 regions = df["coordinates.region"].dropna().unique().tolist()
 departements = df["coordinates.deptname"].dropna().unique().tolist()
-capacite = max(df["capacity"].dropna().unique().tolist())
+cities = df["coordinates.city"].dropna().unique().tolist()
+df["Nom_Entreprise"] = df["title"] + " - " + df["noFinesset"]
+
+# Capacité maximale
+capacite = df["capacity"].dropna().max()
 
 # Sélection des filtres dans Streamlit
 with st.sidebar.expander("Capacité d'accueil"):
     capacite_min = st.number_input("Capacité minimale d'accueil", min_value=0, value=0)
-    capacite_max = st.number_input("Capacité maximale d'accueil", max_value=capacite, value=capacite)
-    
-# Liste des régions et des départements disponibles
-regions = df["coordinates.region"].unique().tolist()
-departements = df["coordinates.deptname"].unique().tolist()
-
-# Obtenir les listes uniques pour les filtres
-regions = df["coordinates.region"].unique().tolist()
-departements = df["coordinates.deptname"].unique().tolist()
-cities = df["coordinates.city"].unique().tolist()
+    capacite_max = st.number_input("Capacité maximale d'accueil", max_value=int(capacite), value=int(capacite))
 
 # Initialiser les sélections
 selected_region = None
 selected_departement = None
 selected_city = None
 
+# Application des filtres sur le DataFrame
+filtered_df = df.copy()
 with st.sidebar.expander("Localisation"):
     # Sélection de la région
     selected_region = st.selectbox(
@@ -49,7 +39,7 @@ with st.sidebar.expander("Localisation"):
     # Dynamique : départements filtrés par région
     if selected_region != "(Toutes les régions)":
         filtered_deps = (
-            df[df["coordinates.region"] == selected_region]["coordinates.deptname"]
+            filtered_df[filtered_df["coordinates.region"] == selected_region]["coordinates.deptname"]
             .unique()
             .tolist()
         )
@@ -64,7 +54,7 @@ with st.sidebar.expander("Localisation"):
     # Dynamique : villes filtrées par département
     if selected_departement != "(Tous les départements)":
         filtered_cities = (
-            df[df["coordinates.deptname"] == selected_departement]["coordinates.city"]
+            filtered_df[filtered_df["coordinates.deptname"] == selected_departement]["coordinates.city"]
             .unique()
             .tolist()
         )
@@ -74,7 +64,7 @@ with st.sidebar.expander("Localisation"):
     elif selected_region != "(Toutes les régions)":
         # Si un département n'est pas choisi, filtrer par région pour la ville
         filtered_cities = (
-            df[df["coordinates.region"] == selected_region]["coordinates.city"]
+            filtered_df[filtered_df["coordinates.region"] == selected_region]["coordinates.city"]
             .unique()
             .tolist()
         )
@@ -86,19 +76,22 @@ with st.sidebar.expander("Localisation"):
             "Choisissez une ville", options=["(Toutes les villes)"] + cities
         )
 
-options_residence = ["EHPAD", "EHPA", "ESLD", "Résidence Autonomie", "Accueil de Jour"]
-with st.sidebar.expander("Autres critères"):
-    selection_residence = st.segmented_control("Type de Résidence : ", options_residence, selection_mode="multi", default=options_residence)
 
-# Application des filtres sur le DataFrame
-filtered_df = df.copy()
 if selected_region != "(Toutes les régions)":
-    filtered_df = filtered_df[filtered_df["coordinates.region"] == selected_region]
+    filtered_df = filtered_df[filtered_df["coordinates.region"] == (selected_region)]
 if selected_departement != "(Tous les départements)":
-    filtered_df = filtered_df[filtered_df["coordinates.deptname"] == selected_departement]
+    filtered_df = filtered_df[filtered_df["coordinates.deptname"] == (selected_departement)]
 if selected_city != "(Toutes les villes)":
     filtered_df = filtered_df[filtered_df["coordinates.city"] == selected_city]
-filtered_df = filtered_df[(df.capacity >= capacite_min) & (df.capacity <= capacite_max)]
+filtered_df = filtered_df[(filtered_df.capacity >= capacite_min) & (filtered_df.capacity <= capacite_max)]
+
+groupe = filtered_df["Nom_Entreprise"].dropna().to_list()
+
+options_residence = ["EHPAD", "EHPA", "ESLD", "Résidence Autonomie", "Accueil de Jour"]
+with st.sidebar.expander("Autres critères"):
+    selection_groupe = st.selectbox("Nom du Groupe", options=["(Tous les groupes)"] + groupe, placeholder="Nom du groupe ou N°Finness")
+    selection_residence = st.segmented_control("Type de Résidence : ", options_residence, selection_mode="multi", default=options_residence)
+
 
 if "EHPAD" not in selection_residence:
     filtered_df = filtered_df[filtered_df["types.IsEHPAD"] == 0]
@@ -110,6 +103,9 @@ if "Résidence Autonomie" not in selection_residence:
     filtered_df = filtered_df[filtered_df["types.IsRA"] == 0]
 if "Accueil de Jour" not in selection_residence:
     filtered_df = filtered_df[filtered_df["types.IsAJA"] == 0] 
+
+if selection_groupe != "(Tous les groupes)":
+    filtered_df = filtered_df[filtered_df["Nom_Entreprise"] == selection_groupe]
 
 # Regrouper les données et calculer le nombre total de places par société
 grouped_df = (filtered_df
@@ -155,7 +151,7 @@ points_df = pd.DataFrame(selected_points)
 
 if not points_df.empty:
     informations_point = pd.merge(points_df, 
-                                  df, 
+                                  filtered_df, 
                                   left_on=["text", "lon", "lat"],
                                   right_on=["title", "coordinates.longitude", "coordinates.latitude"])
     

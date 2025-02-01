@@ -1,0 +1,56 @@
+Column Names;Modification Obligatoire;Type Widget
+_id;1;Num 8
+title;1;Char 256
+noFinesset;0;Char 16
+capacity;1;Numeric Input
+legal_status;1;Selectbox
+isViaTrajectoire;0;Radio
+updatedAt;1;Date
+types.IsEHPAD;0;Radio
+types.IsEHPA;0;Radio
+types.IsESLD;0;Radio
+types.IsRA;0;Radio
+types.IsAJA;0;Radio
+types.IsHCOMPL;0;Radio
+types.IsHTEMPO;0;Radio
+types.IsACC_JOUR;0;Radio
+types.IsACC_NUIT;0;Radio
+types.IsHAB_AIDE_SOC;0;Radio
+types.IsCONV_APL;0;Radio
+types.IsALZH;0;Radio
+types.IsUHR;0;Radio
+types.IsPASA;0;Radio
+types.IsPUV;0;Radio
+types.IsF1;0;Radio
+types.IsF1Bis;0;Radio
+types.IsF2;0;Radio
+pricing.cerfa;0;Numeric Input
+pricing.prixMin;0;Numeric Input
+coordinates.street;0;Char 256
+coordinates.postcode;0;Char 5
+coordinates.deptcode;0;Char 3
+coordinates.deptname;0;Char 256
+coordinates.city;0;Char 256
+coordinates.phone;0;Structure telephonique
+coordinates.emailContact;0;Structure mail
+coordinates.gestionnaire;0;Char 256
+coordinates.website;0;Char 256
+coordinates.latitude;0;Num 16
+coordinates.longitude;0;Num 16
+ehpadPrice._id;0;Num 8
+ehpadPrice.updatedAt;0;Date
+ehpadPrice.prixHebPermCs;0;Numeric Input
+ehpadPrice.prixHebPermCd;0;Numeric Input
+ehpadPrice.tarifGir12;0;Numeric Input
+ehpadPrice.tarifGir34;0;Numeric Input
+ehpadPrice.tarifGir56;0;Numeric Input
+ehpadPrice.autrePrestation;0;Char 256
+ehpadPrice.autreTarifPrest;0;Char 256
+raPrice._id;0;Numeric Input
+raPrice.updatedAt;0;Date
+raPrice.PrixF1;0;Numeric Input
+raPrice.PrixF1ASH;0;Numeric Input
+raPrice.PrixF1Bis;0;Numeric Input
+raPrice.PrixF1BisASH;0;Numeric Input
+raPrice.PrixF2;0;Numeric Input
+raPrice.autreTarifPrest;0;Numeric Input
