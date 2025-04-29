@@ -7,7 +7,6 @@ st.set_page_config(page_title="Aperçu des établissements français", page_icon
 
 # Charger les données JSON dans un DataFrame
 df = pd.read_csv("./data/dataset_to_use.csv", encoding="utf-8")
-print(df.columns)
 
 # Liste des régions, départements et villes
 regions = df["coordinates.region"].dropna().unique().tolist()
