@@ -8,14 +8,7 @@ from sklearn.cluster import KMeans
 
 st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈", layout="wide")
 
-# Charger les données JSON dans un DataFrame
-file_path = "./data/base-etablissement.json"
-df = pd.read_json(file_path)
-
-# Normalisation de la structure JSON (si nécessaire)
-# Si vos données JSON ont des colonnes imbriquées, utilisez json_normalize pour les aplatir.
-df = pd.json_normalize(df.to_dict(orient='records'))
-
+df = pd.read_csv("./data/dataset_to_use.csv", encoding="utf-8")
 # Vérifier que les colonnes nécessaires sont présentes
 required_columns = ["coordinates.deptname", "coordinates.deptcode", "capacity", "title", "noFinesset"]
 if not all(col in df.columns for col in required_columns):

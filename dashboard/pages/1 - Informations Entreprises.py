@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import json
+
 st.set_page_config(page_title="Aperçu des établissements français", page_icon="📈", layout="wide")
 
 # Charger les données JSON dans un DataFrame
-with open("./data/base-etablissement.json", "r") as file:
-    data = json.load(file)
-df = pd.json_normalize(data)
+df = pd.read_csv("./data/dataset_to_use.csv", encoding="utf-8")
+print(df.columns)
 
 # Liste des régions, départements et villes
 regions = df["coordinates.region"].dropna().unique().tolist()
@@ -94,15 +94,15 @@ with st.sidebar.expander("Autres critères"):
 
 
 if "EHPAD" not in selection_residence:
-    filtered_df = filtered_df[filtered_df["types.IsEHPAD"] == 0]
+    filtered_df = filtered_df[filtered_df["IsEHPAD"] == 0]
 if "EHPA" not in selection_residence:
-    filtered_df = filtered_df[filtered_df["types.IsEHPA"] == 0]
+    filtered_df = filtered_df[filtered_df["IsEHPA"] == 0]
 if "ESLD" not in selection_residence:
-    filtered_df = filtered_df[filtered_df["types.IsESLD"] == 0]
+    filtered_df = filtered_df[filtered_df["IsESLD"] == 0]
 if "Résidence Autonomie" not in selection_residence:
-    filtered_df = filtered_df[filtered_df["types.IsRA"] == 0]
+    filtered_df = filtered_df[filtered_df["IsRA"] == 0]
 if "Accueil de Jour" not in selection_residence:
-    filtered_df = filtered_df[filtered_df["types.IsAJA"] == 0] 
+    filtered_df = filtered_df[filtered_df["IsAJA"] == 0] 
 
 if selection_groupe != "(Tous les groupes)":
     filtered_df = filtered_df[filtered_df["Nom_Entreprise"] == selection_groupe]
@@ -157,17 +157,13 @@ if not points_df.empty:
     
     informations_point = informations_point[[
         # 1. Informations générales sur l'établissement
-        "_id", "title", "noFinesset", "capacity", "legal_status", 
-        "isViaTrajectoire", "updatedAt",
+        "_id", "title", "noFinesset", "capacity", "legal_status",
         
         # 2. Types d'établissements (booléens)
-        "types.IsEHPAD", "types.IsEHPA", "types.IsESLD", "types.IsRA", "types.IsAJA", "types.IsHCOMPL", 
-        "types.IsHTEMPO", "types.IsACC_JOUR", "types.IsACC_NUIT", "types.IsHAB_AIDE_SOC", 
-        "types.IsCONV_APL", "types.IsALZH", "types.IsUHR", "types.IsPASA", "types.IsPUV", "types.IsF1", 
-        "types.IsF1Bis", "types.IsF2",
-        
-        # 3. Tarification générale
-        "pricing.cerfa", "pricing.prixMin",
+        "IsEHPAD", "IsEHPA", "IsESLD", "IsRA", "IsAJA", "IsHCOMPL", 
+        "IsHTEMPO", "IsACC_JOUR", "IsACC_NUIT", "IsHAB_AIDE_SOC", 
+        "IsCONV_APL", "IsALZH", "IsUHR", "IsPASA", "IsPUV", "IsF1", 
+        "IsF1Bis", "IsF2",
         
         # 4. Coordonnées et localisation
         "coordinates.street", 
@@ -187,8 +183,6 @@ if not points_df.empty:
         st.write(f"**Numéro FINESS**: {informations_point['noFinesset'][0]}")
         st.write(f"**Capacité**: {informations_point['capacity'][0]}")
         st.write(f"**Statut juridique**: {informations_point['legal_status'][0]}")
-        st.write(f"**Via Trajectoire**: {'✔️' if informations_point['isViaTrajectoire'][0] else '❌'}")
-        st.write(f"**Dernière mise à jour**: {informations_point['updatedAt'][0]}")
 
     # Partie 2: Types d'établissements
     with col2:
@@ -198,16 +192,16 @@ if not points_df.empty:
         with col2bis1:
            
             types_bool_cols = [
-                "types.IsEHPAD", "types.IsEHPA", "types.IsESLD", "types.IsRA", "types.IsAJA", "types.IsHCOMPL", 
-                "types.IsHTEMPO", "types.IsACC_JOUR", "types.IsACC_NUIT"   
+                "IsEHPAD", "IsEHPA", "IsESLD", "IsRA", "IsAJA", "IsHCOMPL", 
+                "IsHTEMPO", "IsACC_JOUR", "IsACC_NUIT"   
             ]
             for col in types_bool_cols:
                 st.checkbox(label=col, value=informations_point[col][0], disabled=True)
         
         with col2bis2:
-            types_bool_cols2 = [ "types.IsHAB_AIDE_SOC", 
-                "types.IsCONV_APL", "types.IsALZH", "types.IsUHR", "types.IsPASA", "types.IsPUV", "types.IsF1", 
-                "types.IsF1Bis", "types.IsF2"
+            types_bool_cols2 = [ "IsHAB_AIDE_SOC", 
+                "IsCONV_APL", "IsALZH", "IsUHR", "IsPASA", "IsPUV", "IsF1", 
+                "IsF1Bis", "IsF2"
             ]
             for col in types_bool_cols2:
                 st.checkbox(label=col, value=informations_point[col][0], disabled=True)
