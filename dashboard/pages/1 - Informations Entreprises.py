@@ -26,7 +26,7 @@ capacite = df["capacity"].dropna().max()
 
 # Sélection des filtres dans Streamlit
 with st.sidebar.expander("Capacité d'accueil"):
-    capacite_min = st.number_input("Capacité minimale d'accueil", min_value=0, value=0)
+    capacite_min = st.number_input("Capacité minimale d'accueil", min_value=0, value=70)
     capacite_max = st.number_input("Capacité maximale d'accueil", max_value=int(capacite), value=int(capacite))
 
 # Initialiser les sélections
@@ -96,7 +96,7 @@ groupe = filtered_df["Nom_Entreprise"].dropna().to_list()
 options_residence = ["EHPAD", "EHPA", "ESLD", "Résidence Autonomie", "Accueil de Jour"]
 with st.sidebar.expander("Autres critères"):
     selection_groupe = st.selectbox("Nom du Groupe", options=["(Tous les groupes)"] + groupe, placeholder="Nom du groupe ou N°Finness")
-    selection_residence = st.segmented_control("Type de Résidence : ", options_residence, selection_mode="multi", default=options_residence)
+    selection_residence = st.segmented_control("Type de Résidence : ", options_residence, selection_mode="multi", default=["EHPAD", "Résidence Autonomie"], help="Sélectionnez les types de résidence à afficher")
 
 
 if "EHPAD" not in selection_residence:
