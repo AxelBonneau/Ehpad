@@ -4,3 +4,4 @@ plotly
 folium
 pydeck
 scikit-learn
+streamlit-plotly-events
