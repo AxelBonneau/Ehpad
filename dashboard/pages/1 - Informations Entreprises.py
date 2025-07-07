@@ -213,14 +213,14 @@ if not map_df.empty:
         map_df.loc[mask, "opacity"] = 1.0
     
     # Calcul dynamique de la taille basée sur le zoom
-    base_size = 6 if show_capacity else 2
+    base_size = 5 if show_capacity else 2
     
     # Ajuster la taille en fonction du zoom (plus le zoom est élevé, plus les points sont grands)
     dynamic_size = base_size * (1 + zoom_level / 15)
     
     # Définir la taille minimale et maximale
     min_size = 3  # Taille minimale absolue
-    max_size = 15  # Taille maximale absolue
+    max_size = 13  # Taille maximale absolue
     
     # Appliquer les limites de taille
     dynamic_size = max(dynamic_size, min_size)  # Garantir une taille minimale
